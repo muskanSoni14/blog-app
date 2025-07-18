@@ -23,8 +23,6 @@ export default function BlogCard({
   isUser,
 }) {
 
-  const BASE_URL = process.env.REACT_APP_API_URL;
-
   const navigate = useNavigate();
   const handleEdit = () => {
     navigate(`/blog-details/${id}`);
@@ -32,7 +30,7 @@ export default function BlogCard({
 
   const handleDelete = async () => {
     try {
-      const {data} = await axios.delete(`${BASE_URL}/api/v1/blog/delete-blog/${id}`);
+      const {data} = await axios.delete(`${process.env.REACT_APP_BACKEND_URL}/api/v1/blog/delete-blog/${id}`);
       if(data?.success) {
         toast.success('Blog Deleted');
         window.location.reload();
