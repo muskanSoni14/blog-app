@@ -1,7 +1,8 @@
+// This comment forces a file update on deployment.
+const { moderateContent } = require('../services/aiModerator');
 const mongoose = require('mongoose');
 const blogModel = require('../models/blogModel');
 const userModel = require('../models/userModel');
-const { moderateContent } = require('../services/aiModerator');
 
 //Get All Blogs
 exports.getAllBlogsController = async (req, res) => {
