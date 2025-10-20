@@ -29,58 +29,58 @@ exports.getAllBlogsController = async (req, res) => {
     }
 };
 
-//Create Blog
 exports.createBlogController = async (req, res) => {
     try {
-        const { title,description,image,user } = req.body;
+        const { title, description, image, user } = req.body;
         //validation
-        if( !title || !description || !image || !user ) {
+        if (!title || !description || !image || !user) {
             return res.status(400).send({
                 success: false,
                 message: 'Please Provide All Fields',
             });
         }
 
-        // === NEW: AI CONTENT MODERATION STEP ===
-        // ==========================================================
-        const contentToCheck = `${title}\n\n${description}`; // Combine title and description
+        const contentToCheck = `${title}\n\n${description}`;
+
+        // --- NEW LOGGING LINES ---
+        console.log("--- MODERATION: Sending content to AI for review. ---");
         const moderationResult = await moderateContent(contentToCheck);
+        console.log("--- MODERATION: AI verdict received: ---", moderationResult);
+        // --- END OF LOGGING LINES ---
 
         if (!moderationResult.is_safe_to_post) {
-            // If the content is flagged, block the post
             return res.status(400).send({
                 success: false,
                 message: 'Your blog could not be created due to content policy violations.',
-                violations: moderationResult.violations_found, // Send details to the frontend
+                violations: moderationResult.violations_found,
             });
         }
-        // ==========================================================
-        // === END OF NEW CODE ===
 
-        const existingUser = await userModel.findById(user)
-        //validation
-        if(!existingUser) {
+        const existingUser = await userModel.findById(user);
+        if (!existingUser) {
             return res.status(404).send({
                 success: false,
                 message: 'Unable to find user'
-            })
+            });
         }
-        
-        const newBlog = new blogModel({title, description, image, user });
-        const session = await mongoose.startSession()
-        session.startTransaction()
-        await newBlog.save({session})
-        existingUser.blogs.push(newBlog)
-        await existingUser.save({session})
+
+        const newBlog = new blogModel({ title, description, image, user });
+        const session = await mongoose.startSession();
+        session.startTransaction();
+        await newBlog.save({ session });
+        existingUser.blogs.push(newBlog);
+        await existingUser.save({ session });
         await session.commitTransaction();
-        await newBlog.save();
+        // This extra save is likely not needed
+        // await newBlog.save(); 
+
         return res.status(201).send({
             success: true,
             message: 'Blog Created!',
             newBlog,
         });
     } catch (error) {
-        console.log(error)
+        console.log(error);
         return res.status(400).send({
             success: false,
             message: 'Error while Creating Blog',
