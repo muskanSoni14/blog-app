@@ -1,3 +1,4 @@
+console.log("--- SERVER STARTING WITH LATEST CODE (v3) ---");
 const express = require("express");
 const cors = require("cors");
 const morgan = require("morgan");
