@@ -1,39 +1,20 @@
-// services/aiModerator.js
+const { GoogleGenAI } = require("@google/genai");
 
-const {
-    GoogleGenerativeAI,
-    HarmCategory,
-    HarmBlockThreshold,
-} = require("@google/generative-ai");
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const ai = new GoogleGenAI({});
 
 async function moderateContent(text) {
     try {
-        const model = genAI.getGenerativeModel({ model: "gemini-pro" });
-
-        // --- CHANGE #1: Make safety settings stricter ---
-        // We now block content that is MEDIUM or HIGH severity.
         const safetySettings = [
             {
-                category: HarmCategory.HARM_CATEGORY_HARASSMENT,
-                threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+                category: "HARM_CATEGORY_HARASSMENT",
+                threshold: "BLOCK_LOW_AND_ABOVE",
             },
             {
-                category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
-                threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
-            },
-            {
-                category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
-                threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
-            },
-            {
-                category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
-                threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+                category: "HARM_CATEGORY_HATE_SPEECH",
+                threshold: "BLOCK_LOW_AND_ABOVE",
             },
         ];
 
-        // --- CHANGE #2: Add a new, explicit rule for threats ---
         const prompt = `
             You are an advanced content moderation API for a technology blog.
             Analyze the following blog post text. Your response MUST be in a valid JSON format.
@@ -62,23 +43,37 @@ async function moderateContent(text) {
             }
         `;
 
-        const chat = model.startChat({
-            safetySettings,
-            history: [],
+        const response = await ai.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: prompt,
+            config: {
+                safetySettings: safetySettings,
+            },
         });
+        console.log(response.text);
+        const responseText = response.text;
 
-        const result = await chat.sendMessage(prompt);
-        const responseText = result.response.text();
+        // Clean up the JSON string from the AI response
+        let cleanedJsonString = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
+        
+        const startIndex = cleanedJsonString.indexOf('{');
+        const endIndex = cleanedJsonString.lastIndexOf('}');
+        if (startIndex === -1 || endIndex === -1) {
+            throw new Error("Invalid JSON response from AI.");
+        }
+        
+        // This is the corrected line (no typo)
+        cleanedJsonString = cleanedJsonString.substring(startIndex, endIndex + 1);
 
-        const cleanedJsonString = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
         const verdict = JSON.parse(cleanedJsonString);
         
         return verdict;
 
     } catch (error) {
         console.error("Error in AI moderation:", error);
-        // Check if the error is due to a safety block from the API itself
-        if (error.message && error.message.includes('SCS_PROMPT_SAFETY_BLOCK')) {
+        
+        // Handle cases where the AI *itself* blocks the content
+        if (error.response && error.response.promptFeedback && error.response.promptFeedback.blockReason) {
             return {
                 is_safe_to_post: false,
                 violations_found: [{
@@ -87,6 +82,8 @@ async function moderateContent(text) {
                 }]
             };
         }
+        
+        // Handle all other errors (like the 404s we were seeing)
         return {
             is_safe_to_post: false,
             violations_found: [{

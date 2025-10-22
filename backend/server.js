@@ -1,4 +1,3 @@
-console.log("--- SERVER STARTING WITH LATEST CODE (v3) ---");
 const express = require("express");
 const cors = require("cors");
 const morgan = require("morgan");
@@ -20,27 +19,12 @@ connectDB();
 const app = express();
 
 //middelwares
-// 1. Define your "whitelist" of allowed URLs
-const allowedOrigins = [
-  'http://localhost:3000',
-  'https://blogapp-vert-two.vercel.app' // Your deployed frontend URL
-];
-
-// 2. Create the CORS options
-const corsOptions = {
-  origin: function (origin, callback) {
-    // Allow if the origin is in our whitelist
-    if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
+app.use(cors({
+  origin: 'http://localhost:3000', // Allow requests from your React app
   credentials: true
-};
+}));
 
-// 3. Use the new options in your app
-app.use(cors(corsOptions));
+
 app.use(express.json());
 app.use(morgan("dev"));
 

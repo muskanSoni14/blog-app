@@ -12,6 +12,10 @@ const CreateBlog = () => {
     description: "",
     image: "",
   });
+
+  // --- 1. ADD NEW STATE FOR LOADING ---
+  const [loading, setLoading] = useState(false);
+
   // input change
   const handleChange = (e) => {
     setInputs((prevState) => ({
@@ -19,9 +23,13 @@ const CreateBlog = () => {
       [e.target.name]: e.target.value,
     }));
   };
+
   //form
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // --- 2. UPDATE SUBMIT LOGIC ---
+    setLoading(true); // Start loading
     try {
       const { data } = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/v1/blog/create-blog`, {
         title: inputs.title,
@@ -34,9 +42,15 @@ const CreateBlog = () => {
         navigate("/my-blogs");
       }
     } catch (error) {
+      // Extract the specific error message from the backend
+      const errorMessage = error.response?.data?.message || "An error occurred while creating the blog.";
+      toast.error(errorMessage); // Display the error using react-hot-toast
       console.log(error);
+    } finally {
+      setLoading(false); // Stop loading in any case
     }
   };
+
   return (
     <>
       <form onSubmit={handleSubmit}>
@@ -103,16 +117,18 @@ const CreateBlog = () => {
                 size="small"
                 required
             />
-            <Button 
-                type='submit' 
-                color='primary' 
-                variant='contained'
-                sx={{ mt: 2 }} 
-            >
-                SUBMIT
-            </Button>
+            {/* --- 3. UPDATE BUTTON TO SHOW LOADING STATE --- */}
+          <Button 
+            type='submit' 
+            color='primary' 
+            variant='contained'
+            sx={{ mt: 2 }} 
+            disabled={loading} // Disable button when loading
+          >
+            {loading ? 'Submitting for Review...' : 'SUBMIT'}
+          </Button>
         </Box>
-    </form>
+      </form>
     </>
   );
 };
