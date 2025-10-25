@@ -6,7 +6,8 @@ const {
   getBlogByIdController,
   deleteBlogController,
   userBlogController,
-} = require("../controllers/blogControlller");
+  generateTitlesController,
+} = require("../controllers/blogController");
 
 //router object
 const router = express.Router();
@@ -29,5 +30,8 @@ router.delete("/delete-blog/:id", deleteBlogController);
 
 //GET || user blog
 router.get("/user-blog/:id", userBlogController);
+
+//POST || generate-title
+router.post('/generate-titles', generateTitlesController);
 
 module.exports = router;
