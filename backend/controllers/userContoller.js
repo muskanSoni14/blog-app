@@ -1,5 +1,6 @@
 const userModel = require('../models/userModel')
 const bcrypt = require('bcrypt');
+const validator = require('validator');
 
 // create user register user
 exports.registerController = async (req, res) => {
@@ -12,6 +13,15 @@ exports.registerController = async (req, res) => {
                 message: 'Please fill all fields'
             });
         }
+
+            // THIS IS VALIDATION BLOCK
+        if (!validator.isEmail(email)) {
+        return res.status(400).send({
+            success: false,
+            message: 'Please enter a valid email address.'
+        });
+        }
+
         //existing user
         const existingUser = await userModel.findOne({email});
         if(existingUser) {

@@ -36,9 +36,16 @@ const Login = () => {
         dispatch(authActions.login());
         toast.success("User login Successfully");
         navigate("/");
-      }
+      } else {
+        // --- THIS IS THE FIX ---
+        // Handle cases where the backend returns success: false
+        // (like "User not found")
+        toast.error(data.message);
+     }
     } catch (error) {
-      console.log(error);
+      const errorMessage = error.response?.data?.message || "Invalid credentials";
+      toast.error(errorMessage); // Show the error to the user
+      console.log(error);
     }
   };
   return (

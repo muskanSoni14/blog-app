@@ -13,6 +13,10 @@ async function moderateContent(text) {
                 category: "HARM_CATEGORY_HATE_SPEECH",
                 threshold: "BLOCK_LOW_AND_ABOVE",
             },
+            {
+                category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+                threshold: "BLOCK_LOW_AND_ABOVE",
+            },
         ];
 
         const prompt = `
@@ -22,9 +26,9 @@ async function moderateContent(text) {
             Check for the following violations:
             1. THREATS_OR_VIOLENCE: Any direct or indirect threats of violence, harm, or death towards any individual or group.
             2. PROFANITY_OR_HATE_SPEECH: Any swear words, hateful, or discriminatory language.
-            3. PII_LEAK: Any potential personal information like emails or phone numbers.
+            PII_LEAK: Any private, non-public personal information. Block emails, phone numbers, credit card numbers, or home addresses. Public names of people or schools are acceptable.
             4. SPAM_OR_SCAM: Commercial spam, phishing links, or scam-like language.
-            5. OFF_TOPIC: The content is not related to technology, software development, or programming.
+            5. SEXUALLY_EXPLICIT: Any pornographic content, descriptions of sexual acts, or otherwise NSFW material.
 
             The blog post text is:
             """
@@ -36,8 +40,8 @@ async function moderateContent(text) {
               "is_safe_to_post": boolean,
               "violations_found": [
                 {
-                  "type": "THREATS_OR_VIOLENCE" | "PROFANITY_OR_HATE_SPEECH" | "PII_LEAK" | "SPAM_OR_SCAM" | "OFF_TOPIC" | "NONE",
-                  "details": "A brief explanation of the violation found."
+                  "type": "THREATS_OR_VIOLENCE" | "PROFANITY_OR_HATE_SPEECH" | "SEXUALLY_EXPLICIT" | "PII_LEAK" | "SPAM_OR_SCAM" | "NONE",
+                  "details": "details": "A short, user-friendly reason in 5 words or less. (e.g., 'Content contains profanity' or 'Post contains potential spam')."
                 }
               ]
             }

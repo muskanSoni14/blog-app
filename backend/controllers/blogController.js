@@ -1,8 +1,9 @@
-// This comment forces a file update on deployment.
 const { moderateContent } = require('../services/aiModerator');
+const { generateTitles } = require('../services/aiTitle');
 const mongoose = require('mongoose');
 const blogModel = require('../models/blogModel');
 const userModel = require('../models/userModel');
+const validator = require('validator');
 
 //Get All Blogs
 exports.getAllBlogsController = async (req, res) => {
@@ -41,6 +42,14 @@ exports.createBlogController = async (req, res) => {
             });
         }
 
+            // THIS IS VALIDATION BLOCK
+        if (!validator.isURL(image)) {
+            return res.status(400).send({
+                success: false,
+                message: 'Please provide a valid image URL.'
+            });
+        }
+
         const contentToCheck = `${title}\n\n${description}`;
 
         // --- NEW LOGGING LINES ---
@@ -72,8 +81,7 @@ exports.createBlogController = async (req, res) => {
         existingUser.blogs.push(newBlog);
         await existingUser.save({ session });
         await session.commitTransaction();
-        // This extra save is likely not needed
-        // await newBlog.save(); 
+
 
         return res.status(201).send({
             success: true,
@@ -113,6 +121,66 @@ exports.updateBlogController = async (req, res) => {
             error,
         });
     }
+};
+
+//Update Blog
+exports.updateBlogController = async (req, res) => {
+    try {
+        const {id} = req.params;
+        const{title, description, image} = req.body;
+
+        // --- 1. BASIC VALIDATION ---
+        if (!title || !description || !image) {
+            return res.status(400).send({
+                success: false,
+                message: 'Please provide title, description, and image',
+            });
+        }
+
+        // --- 2. IMAGE URL VALIDATION ---
+        if (!validator.isURL(image)) {
+            return res.status(400).send({
+                success: false,
+                message: 'Please provide a valid image URL.'
+            });
+        }
+        
+        // --- 3. AI MODERATION ---
+        const contentToModerate = `${title}\n\n${description}`;
+        console.log("--- MODERATION (UPDATE): Sending content to AI for review. ---");
+        const moderationResult = await moderateContent(contentToModerate);
+        console.log("--- MODERATION (UPDATE): AI verdict received: ---", moderationResult);
+
+        if (!moderationResult.is_safe_to_post) {
+            // Block the update if it's not safe
+            return res.status(400).send({
+                success: false,
+                // Send the specific reason to the frontend
+                message: moderationResult.violations_found[0].details,
+            });
+        }
+
+        // --- 4. IF ALL CHECKS PASS, UPDATE THE BLOG ---
+        const blog = await blogModel.findByIdAndUpdate(
+            id,
+            {...req.body}, // This is { title, description, image }
+            {new: true}
+        );
+
+        return res.status(200).send({
+            success: true,
+            message: 'Blog Updated Successfully!',
+            blog,
+        });
+
+    } catch (error) {
+        console.log(error)
+        return res.status(400).send({
+            success: false,
+            message: 'Error while Updating Blog',
+            error,
+        });
+    }
 };
 
 //Single Blog
@@ -184,4 +252,49 @@ exports.userBlogController = async (req, res) => {
             error,
         });
     }
+};
+
+exports.generateTitlesController = async (req, res) => {
+  try {
+    const { text } = req.body;
+    // 1. Check for input
+    if (!text || text.length < 40) { 
+      return res.status(400).send({
+        success: false,
+        message: 'Blog content is too short to generate titles.',
+      });
+    }
+
+    // --- 2. THIS IS MODERATION STEP ---
+    console.log("--- TITLE GEN: Moderating content before generating titles. ---");
+    const moderationResult = await moderateContent(text);
+
+    if (!moderationResult.is_safe_to_post) {
+        return res.status(400).send({
+            success: false,
+            // Send the specific reason to the frontend toast
+            message: moderationResult.violations_found[0].details, 
+        });
+    }
+    // --- END OF NEW STEP ---
+
+    // 3. Call your AI function (only if safe)
+    console.log("--- TITLE GEN: Content is safe, generating titles. ---");
+    const titles = await generateTitles(text);
+
+    // 4. Send the titles back to the frontend
+    return res.status(200).send({
+      success: true,
+      message: 'Titles generated successfully',
+      titles: titles, // This is the [ "title1", "title2" ] array
+    });
+
+  } catch (error) {
+    console.log("Error in AI Title Generation:", error);
+    return res.status(500).send({
+      success: false,
+      message: 'Error generating titles via AI',
+      error: error.message,
+    });
+  }
 };
