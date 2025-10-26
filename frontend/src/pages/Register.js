@@ -35,6 +35,8 @@ const Register = () => {
         navigate("/login");
       }
     } catch (error) {
+      const errorMessage = error.response?.data?.message || "Registration failed";
+      toast.error(errorMessage); // Show the error to the user
       console.log(error);
     }
   };

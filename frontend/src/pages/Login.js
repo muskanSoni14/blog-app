@@ -37,7 +37,6 @@ const Login = () => {
         toast.success("User login Successfully");
         navigate("/");
       } else {
-        // --- THIS IS THE FIX ---
         // Handle cases where the backend returns success: false
         // (like "User not found")
         toast.error(data.message);
